@@ -111,7 +111,7 @@
             position: absolute;
             top: 20px;
             left: 50%;
-            transform: translateX(-50%);
+            transform: translateX(calc(-50% - 46px));
             background: rgba(0, 180, 255, 0.1);
             border: 1px solid rgba(0, 180, 255, 0.3);
             color: #00b4ff;
@@ -137,6 +137,126 @@
         #info-btn.active {
             background: rgba(0, 180, 255, 0.3);
             border-color: #00b4ff;
+        }
+
+        #kids-btn {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(calc(-50% + 46px));
+            background: rgba(255, 180, 0, 0.12);
+            border: 1px solid rgba(255, 180, 0, 0.3);
+            color: #ffb400;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            font-size: 18px;
+            cursor: pointer;
+            z-index: 30;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+        }
+        #kids-btn:hover {
+            background: rgba(255, 180, 0, 0.25);
+            border-color: rgba(255, 180, 0, 0.7);
+            box-shadow: 0 0 20px rgba(255, 180, 0, 0.3);
+        }
+        #kids-btn.active {
+            background: rgba(255, 180, 0, 0.3);
+            border-color: #ffb400;
+        }
+
+        #kids-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(8, 4, 20, 0.94);
+            z-index: 25;
+            display: none;
+            overflow-y: auto;
+            padding: 70px 40px 40px;
+        }
+        #kids-overlay.visible { display: block; }
+        #kids-overlay::-webkit-scrollbar { width: 6px; }
+        #kids-overlay::-webkit-scrollbar-track { background: transparent; }
+        #kids-overlay::-webkit-scrollbar-thumb { background: rgba(255,180,0,0.3); border-radius: 3px; }
+
+        #kids-content {
+            max-width: 700px;
+            margin: 0 auto;
+        }
+        .kids-section {
+            margin-bottom: 36px;
+        }
+        .kids-section h2 {
+            font-size: 20px;
+            color: #ffb400;
+            margin-bottom: 14px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(255, 180, 0, 0.15);
+        }
+        .kids-section p, .kids-section li {
+            font-size: 15px;
+            color: #c0b8d8;
+            line-height: 2;
+        }
+        .kids-section ul {
+            list-style: none;
+            padding: 0;
+        }
+        .kids-section li {
+            padding: 4px 0;
+        }
+        .kids-section strong { color: #ffe0a0; }
+        .kids-section .highlight { color: #ffcc44; }
+
+        .kids-card {
+            background: rgba(60, 30, 80, 0.25);
+            border: 1px solid rgba(255, 180, 0, 0.12);
+            border-radius: 10px;
+            padding: 18px 22px;
+            margin-bottom: 14px;
+        }
+        .kids-card h3 {
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+        .kids-card img {
+            width: 100%;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            opacity: 0.85;
+        }
+        .kids-card p {
+            font-size: 14px;
+            color: #b0a8c8;
+            line-height: 1.9;
+        }
+        .kids-emoji {
+            font-size: 28px;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+        .kids-quiz {
+            background: rgba(255, 180, 0, 0.08);
+            border: 1px solid rgba(255, 180, 0, 0.2);
+            border-radius: 10px;
+            padding: 18px 22px;
+            margin-top: 10px;
+        }
+        .kids-quiz summary {
+            font-size: 15px;
+            color: #ffcc44;
+            cursor: pointer;
+            padding: 4px 0;
+        }
+        .kids-quiz p {
+            font-size: 14px;
+            color: #c0b8d8;
+            margin-top: 8px;
+            line-height: 1.8;
         }
 
         #info-overlay {
@@ -417,6 +537,7 @@
 
     <!-- Info Button -->
     <button id="info-btn" onclick="toggleInfo()" title="Info & Guide (I)">i</button>
+    <button id="kids-btn" onclick="toggleKids()" title="Kids Mode (K)">&#9733;</button>
 
     <!-- Info Panel -->
     <div id="info-overlay">
@@ -583,6 +704,161 @@
                 Simplified simulation for educational purposes. The real physics is
                 of course orders of magnitude more complex.<br>
                 Data &amp; Facts: CERN &mdash; home.cern
+            </div>
+        </div>
+    </div>
+
+    <!-- Kids Page -->
+    <div id="kids-overlay">
+        <div id="kids-content">
+            <div style="text-align:center; margin-bottom:30px;">
+                <div style="font-size:40px;">&#9733;</div>
+                <h1 style="color:#ffb400; font-size:28px; letter-spacing:4px;">Explorer Zone</h1>
+                <p style="color:#b0a8c8; font-size:15px;">Discover the biggest machine on Earth!</p>
+            </div>
+
+            <div class="kids-section">
+                <h2><span class="kids-emoji">&#x1F914;</span>What is this giant ring?</h2>
+                <p>
+                    Under the ground near <strong>Geneva, Switzerland</strong>, scientists built a
+                    <strong>huge circular tunnel</strong> &mdash; 27 kilometers around! That's so big,
+                    you'd need to ride your bike for about an hour to go all the way around.
+                </p>
+                <p>
+                    Inside this tunnel is a machine called the <strong>Large Hadron Collider</strong>,
+                    or <strong>LHC</strong> for short. It's the <strong>biggest science experiment ever built</strong>.
+                </p>
+                <img src="https://cds.cern.ch/record/2851208/files/202302-066_09.jpg?subformat=icon-720" alt="LHC tunnel" style="width:100%; border-radius:10px; margin:14px 0; opacity:0.85;">
+                <p style="font-size:12px; color:#7a6a9b; text-align:center;">The real LHC tunnel &mdash; those blue tubes are super-powerful magnets!</p>
+            </div>
+
+            <div class="kids-section">
+                <h2><span class="kids-emoji">&#x26A1;</span>What does it do?</h2>
+                <p>
+                    The LHC takes tiny, <em>tiny</em> particles called <strong>protons</strong> (they're
+                    inside every atom in your body!) and speeds them up to
+                    <strong>almost the speed of light</strong> &mdash; that's
+                    299,792 kilometers per SECOND!
+                </p>
+                <p>
+                    Then it smashes them together. <strong>BOOM!</strong> When they crash,
+                    the energy creates <strong>brand new particles</strong> that only
+                    existed right after the Big Bang, billions of years ago.
+                    It's like smashing two watches together and finding the gears
+                    &mdash; except these "gears" are what the entire universe is made of.
+                </p>
+            </div>
+
+            <div class="kids-section">
+                <h2><span class="kids-emoji">&#x1F52D;</span>The four giant cameras</h2>
+                <p>
+                    At four spots around the ring, there are enormous <strong>detectors</strong>.
+                    Think of them as <strong>super-cameras</strong> that take pictures of what
+                    happens when particles crash. Each one is as tall as a 5-story building!
+                </p>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:14px;">
+                    <div class="kids-card">
+                        <h3 style="color:#ff6644;">ATLAS</h3>
+                        <img src="https://cds.cern.ch/record/2800323/files/202201-006_104.jpg?subformat=icon-640" alt="ATLAS" loading="lazy">
+                        <p>The <strong>biggest</strong> detector &mdash; 46 meters long! As long as a blue whale... times four.</p>
+                    </div>
+                    <div class="kids-card">
+                        <h3 style="color:#44aaff;">CMS</h3>
+                        <img src="https://cds.cern.ch/record/1133594/files/0808022_01.jpg?subformat=icon-640" alt="CMS" loading="lazy">
+                        <p>Weighs <strong>14,000 tons</strong> &mdash; that's about 2,000 elephants stacked together!</p>
+                    </div>
+                    <div class="kids-card">
+                        <h3 style="color:#44ff88;">ALICE</h3>
+                        <img src="https://cds.cern.ch/record/1436153/files/LRsaba_CERN_0212_3219.jpg?subformat=icon-640" alt="ALICE" loading="lazy">
+                        <p>Studies a special soup of particles that existed <strong>a millionth of a second</strong> after the Big Bang.</p>
+                    </div>
+                    <div class="kids-card">
+                        <h3 style="color:#ffaa44;">LHCb</h3>
+                        <img src="https://cds.cern.ch/record/2650174/files/201811-329_15.jpg?subformat=icon-640" alt="LHCb" loading="lazy">
+                        <p>Investigates why the universe is made of <strong>matter</strong> and not antimatter. Science mystery!</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="kids-section">
+                <h2><span class="kids-emoji">&#x1F3C3;</span>How fast? HOW fast?!</h2>
+                <p>
+                    When the LHC is running at full power, each proton zooms around the
+                    27 km ring <strong>11,245 times per second</strong>.
+                </p>
+                <p>
+                    That's <strong>99.9999991%</strong> the speed of light. If a proton raced
+                    a beam of light around the Earth, after one full lap the light would
+                    win by only <strong>3 meters</strong>. That's less than the length of a car!
+                </p>
+            </div>
+
+            <div class="kids-section">
+                <h2><span class="kids-emoji">&#x2728;</span>What did they find?</h2>
+                <p>
+                    In <strong>2012</strong>, scientists discovered the <strong>Higgs boson</strong>!
+                    This particle is super special &mdash; it's the reason everything has
+                    <strong>mass</strong> (weight). Without it, atoms couldn't form, and
+                    there would be no stars, no planets, no pizza, and no you.
+                </p>
+                <img src="https://cds.cern.ch/record/1606503/files/gammagamma_run194108_evt564224000_ispy_3d-annotated-2.png?subformat=icon-720" alt="Higgs event" loading="lazy" style="width:100%; border-radius:10px; margin:14px 0; opacity:0.85;">
+                <p style="font-size:12px; color:#7a6a9b; text-align:center;">A real picture from the CMS detector &mdash; those yellow lines are particles flying apart after a collision!</p>
+            </div>
+
+            <div class="kids-section">
+                <h2><span class="kids-emoji">&#x1F9E9;</span>Building blocks of everything</h2>
+                <p>
+                    Everything in the universe is made of a handful of tiny particles.
+                    Here are the ones you can see in this simulation:
+                </p>
+                <ul>
+                    <li><strong style="color:#88ffff;">Electrons</strong> &mdash; They orbit atoms and make electricity flow. Zap!</li>
+                    <li><strong style="color:#88ff44;">Muons</strong> &mdash; Like heavy electrons. They rain down from space all the time &mdash; some are passing through you RIGHT NOW.</li>
+                    <li><strong style="color:#ffffff;">Photons</strong> &mdash; Particles of light! Every color you see is made of photons.</li>
+                    <li><strong style="color:#666688;">Neutrinos</strong> &mdash; Ghost particles! 100 trillion pass through your body every second and you never feel a thing.</li>
+                    <li><strong style="color:#aaaaff;">Pions</strong> &mdash; Glue that holds the center of atoms together.</li>
+                    <li><strong style="color:#ff4488;">Higgs Boson</strong> &mdash; The famous one! Gives everything its mass.</li>
+                </ul>
+            </div>
+
+            <div class="kids-section">
+                <h2><span class="kids-emoji">&#x1F3AE;</span>Try it yourself!</h2>
+                <ul>
+                    <li>Press <strong style="color:#ffcc44;">ENERGY +</strong> a few times to speed up the protons</li>
+                    <li>Press <strong style="color:#ffcc44;">COLLIDE</strong> (or Space) to smash particles together!</li>
+                    <li>Use <strong style="color:#ffcc44;">&laquo; &raquo;</strong> to go super slow-mo and watch the particles fly</li>
+                    <li>Zoom in with <strong style="color:#ffcc44;">+</strong> to see the collision up close</li>
+                    <li>Hover over a detector on the ring to see a real photo!</li>
+                    <li>Check the top-right corner to see which particles you discovered</li>
+                </ul>
+            </div>
+
+            <div class="kids-section">
+                <h2><span class="kids-emoji">&#x1F4A1;</span>Fun facts quiz</h2>
+
+                <details class="kids-quiz">
+                    <summary>How cold is the LHC inside?</summary>
+                    <p><strong>-271.3 &deg;C</strong> &mdash; that's colder than outer space! The magnets need to be super-cooled to work.</p>
+                </details>
+
+                <details class="kids-quiz">
+                    <summary>How many protons are in each bunch?</summary>
+                    <p>About <strong>100 billion</strong> protons in each bunch, and there are around 2,800 bunches going around at the same time!</p>
+                </details>
+
+                <details class="kids-quiz">
+                    <summary>Could the LHC create a black hole?</summary>
+                    <p><strong>No way!</strong> The energy of LHC collisions is way too small. Nature does the same collisions in our atmosphere millions of times a day with cosmic rays. We're totally safe.</p>
+                </details>
+
+                <details class="kids-quiz">
+                    <summary>Who works at CERN?</summary>
+                    <p>Over <strong>17,000 scientists</strong> from more than 110 countries! And fun fact: the <strong>World Wide Web</strong> (the internet as we know it) was invented at CERN in 1989.</p>
+                </details>
+            </div>
+
+            <div style="opacity:0.4; font-size:11px; text-align:center; border-top: 1px solid rgba(255,180,0,0.1); padding-top:20px;">
+                Images &amp; facts: CERN &mdash; home.cern
             </div>
         </div>
     </div>
@@ -1652,8 +1928,17 @@
     // --- Info panel ---
     function toggleInfo() {
         infoOpen = !infoOpen;
+        if (infoOpen && kidsOpen) toggleKids();
         document.getElementById('info-overlay').classList.toggle('visible', infoOpen);
         document.getElementById('info-btn').classList.toggle('active', infoOpen);
+    }
+
+    let kidsOpen = false;
+    function toggleKids() {
+        kidsOpen = !kidsOpen;
+        if (kidsOpen && infoOpen) toggleInfo();
+        document.getElementById('kids-overlay').classList.toggle('visible', kidsOpen);
+        document.getElementById('kids-btn').classList.toggle('active', kidsOpen);
     }
 
     // Build particle legend in info panel
@@ -1736,7 +2021,7 @@
 
     // --- Zoom with mouse wheel (zoom toward cursor) ---
     canvas.addEventListener('wheel', (e) => {
-        if (introActive || infoOpen) return;
+        if (introActive || infoOpen || kidsOpen) return;
         e.preventDefault();
         const zoomDelta = e.deltaY > 0 ? 0.95 : 1.05;
         const newZoom = Math.max(0.5, Math.min(8, targetZoom * zoomDelta));
@@ -1752,7 +2037,7 @@
 
     // --- Drag to pan ---
     canvas.addEventListener('mousedown', (e) => {
-        if (introActive || infoOpen) return;
+        if (introActive || infoOpen || kidsOpen) return;
         isDragging = true;
         dragStartX = e.clientX;
         dragStartY = e.clientY;
@@ -1774,7 +2059,7 @@
     let lastTouchDist = 0;
     let lastTouchCenter = null;
     canvas.addEventListener('touchstart', (e) => {
-        if (introActive || infoOpen) return;
+        if (introActive || infoOpen || kidsOpen) return;
         if (e.touches.length === 1) {
             isDragging = true;
             dragStartX = e.touches[0].clientX;
@@ -1788,7 +2073,7 @@
         }
     }, { passive: true });
     canvas.addEventListener('touchmove', (e) => {
-        if (introActive || infoOpen) return;
+        if (introActive || infoOpen || kidsOpen) return;
         e.preventDefault();
         if (e.touches.length === 1 && isDragging) {
             targetPanX = dragPanStartX + (e.touches[0].clientX - dragStartX);
@@ -1806,8 +2091,10 @@
     document.addEventListener('keydown', (e) => {
         if (introActive && (e.code === 'Space' || e.code === 'Enter')) { e.preventDefault(); dismissIntro(); return; }
         if (e.code === 'Escape' && infoOpen) { toggleInfo(); return; }
+        if (e.code === 'Escape' && kidsOpen) { toggleKids(); return; }
         if (e.code === 'KeyI') { toggleInfo(); return; }
-        if (infoOpen) return;
+        if (e.code === 'KeyK') { toggleKids(); return; }
+        if (infoOpen || kidsOpen) return;
         if (e.code === 'Space') { e.preventDefault(); triggerCollision(); }
         if (e.code === 'KeyE') boostEnergy();
         if (e.code === 'KeyP') togglePause();
