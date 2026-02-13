@@ -1,0 +1,1796 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CERN - Large Hadron Collider Simulation</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0a0a14;
+            color: #e0e0e0;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+            height: 100vh;
+        }
+        canvas { display: block; }
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+            pointer-events: none;
+        }
+        h1 {
+            font-size: 28px;
+            color: #00b4ff;
+            text-shadow: 0 0 20px rgba(0, 180, 255, 0.5);
+            letter-spacing: 6px;
+        }
+        .subtitle {
+            font-size: 13px;
+            color: #6688aa;
+            margin-top: 4px;
+            letter-spacing: 2px;
+        }
+        #stats {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            text-align: right;
+            font-size: 12px;
+            color: #4a7a9b;
+            line-height: 1.8;
+        }
+        #stats .value {
+            color: #00ccff;
+            font-weight: bold;
+        }
+        #stats .label {
+            color: #3a5a6b;
+        }
+        #controls {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 16px;
+            z-index: 10;
+        }
+        button {
+            background: rgba(0, 180, 255, 0.1);
+            border: 1px solid rgba(0, 180, 255, 0.3);
+            color: #00b4ff;
+            padding: 10px 24px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            cursor: pointer;
+            letter-spacing: 2px;
+            transition: all 0.3s;
+            pointer-events: all;
+        }
+        button:hover {
+            background: rgba(0, 180, 255, 0.25);
+            border-color: rgba(0, 180, 255, 0.7);
+            box-shadow: 0 0 20px rgba(0, 180, 255, 0.2);
+        }
+        button.active {
+            background: rgba(0, 180, 255, 0.3);
+            border-color: #00b4ff;
+        }
+        #event-log {
+            position: absolute;
+            bottom: 100px;
+            left: 20px;
+            font-size: 11px;
+            color: #3a6a3a;
+            line-height: 1.6;
+            max-height: 200px;
+            overflow: hidden;
+        }
+        #event-log .event { opacity: 0.8; }
+        #event-log .event.collision { color: #ffaa00; }
+        #event-log .event.discovery { color: #ff4488; }
+        #event-log .event.detection { color: #44ff88; }
+        #detector-label {
+            position: absolute;
+            padding: 4px 10px;
+            background: rgba(0,0,0,0.7);
+            border: 1px solid rgba(0,180,255,0.3);
+            font-size: 11px;
+            color: #00b4ff;
+            pointer-events: none;
+            display: none;
+            z-index: 20;
+        }
+
+        /* Speed / Zoom HUD */
+        /* Info Panel */
+        #info-btn {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 180, 255, 0.1);
+            border: 1px solid rgba(0, 180, 255, 0.3);
+            color: #00b4ff;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            font-family: Georgia, serif;
+            font-size: 18px;
+            font-style: italic;
+            cursor: pointer;
+            z-index: 30;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+        }
+        #info-btn:hover {
+            background: rgba(0, 180, 255, 0.25);
+            border-color: rgba(0, 180, 255, 0.7);
+            box-shadow: 0 0 20px rgba(0, 180, 255, 0.3);
+        }
+        #info-btn.active {
+            background: rgba(0, 180, 255, 0.3);
+            border-color: #00b4ff;
+        }
+
+        #info-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(4, 6, 16, 0.92);
+            z-index: 25;
+            display: none;
+            overflow-y: auto;
+            padding: 70px 40px 40px;
+        }
+        #info-overlay.visible { display: block; }
+        #info-overlay::-webkit-scrollbar { width: 6px; }
+        #info-overlay::-webkit-scrollbar-track { background: transparent; }
+        #info-overlay::-webkit-scrollbar-thumb { background: rgba(0,180,255,0.3); border-radius: 3px; }
+
+        #info-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .info-section {
+            margin-bottom: 36px;
+        }
+        .info-section h2 {
+            font-size: 16px;
+            color: #00b4ff;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            margin-bottom: 14px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(0, 180, 255, 0.15);
+        }
+        .info-section p, .info-section li {
+            font-size: 13px;
+            color: #8aa8c0;
+            line-height: 1.8;
+        }
+        .info-section ul {
+            list-style: none;
+            padding: 0;
+        }
+        .info-section li {
+            padding: 4px 0;
+            padding-left: 16px;
+            position: relative;
+        }
+        .info-section li::before {
+            content: '\25B8';
+            position: absolute;
+            left: 0;
+            color: #00b4ff;
+        }
+        .info-section strong { color: #c0d8e8; }
+        .info-section .highlight { color: #00ccff; }
+        .info-section code {
+            background: rgba(0, 180, 255, 0.1);
+            border: 1px solid rgba(0, 180, 255, 0.15);
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 12px;
+            color: #44ccff;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-top: 10px;
+        }
+        @media (max-width: 700px) {
+            .info-grid { grid-template-columns: 1fr; }
+            #info-overlay { padding: 70px 20px 30px; }
+        }
+        .info-card {
+            background: rgba(0, 40, 70, 0.25);
+            border: 1px solid rgba(0, 180, 255, 0.1);
+            border-radius: 6px;
+            padding: 14px 18px;
+        }
+        .info-card h3 {
+            font-size: 13px;
+            margin-bottom: 6px;
+            letter-spacing: 1px;
+        }
+        .info-card p {
+            font-size: 12px;
+            color: #6a8a9f;
+            line-height: 1.7;
+        }
+
+        .key-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 6px 0;
+        }
+        .key {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 60px;
+            padding: 4px 10px;
+            background: rgba(0, 180, 255, 0.08);
+            border: 1px solid rgba(0, 180, 255, 0.2);
+            border-radius: 4px;
+            font-size: 11px;
+            color: #44ccff;
+            text-align: center;
+        }
+        .key-desc {
+            font-size: 12px;
+            color: #7a9ab0;
+        }
+
+        .particle-legend {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .particle-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 6px 10px;
+            background: rgba(0, 20, 40, 0.4);
+            border-radius: 4px;
+        }
+        .particle-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .particle-info {
+            font-size: 11px;
+            line-height: 1.5;
+        }
+        .particle-info .pname { color: #c0d8e8; }
+        .particle-info .pmass { color: #5a7a8a; }
+
+        /* Tooltip for hovering on elements */
+        .tooltip {
+            position: absolute;
+            background: rgba(4, 10, 20, 0.95);
+            border: 1px solid rgba(0, 180, 255, 0.3);
+            border-radius: 6px;
+            padding: 10px 14px;
+            font-size: 11px;
+            color: #8aa8c0;
+            line-height: 1.7;
+            max-width: 260px;
+            pointer-events: none;
+            z-index: 35;
+            display: none;
+        }
+        .tooltip h4 {
+            font-size: 13px;
+            color: #00ccff;
+            margin-bottom: 4px;
+            letter-spacing: 1px;
+        }
+
+        /* Intro overlay */
+        #intro-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(4, 6, 16, 0.96);
+            z-index: 40;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            transition: opacity 0.8s;
+        }
+        #intro-overlay.fade-out {
+            opacity: 0;
+            pointer-events: none;
+        }
+        #intro-content {
+            max-width: 560px;
+            padding: 40px;
+        }
+        #intro-content h1 {
+            font-size: 36px;
+            color: #00b4ff;
+            text-shadow: 0 0 30px rgba(0, 180, 255, 0.5);
+            letter-spacing: 10px;
+            margin-bottom: 8px;
+        }
+        #intro-content .intro-sub {
+            font-size: 14px;
+            color: #4a7a9b;
+            letter-spacing: 3px;
+            margin-bottom: 30px;
+        }
+        #intro-content p {
+            font-size: 13px;
+            color: #7a9ab5;
+            line-height: 1.9;
+            margin-bottom: 20px;
+        }
+        #intro-content .intro-keys {
+            display: inline-flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 28px;
+            text-align: left;
+        }
+        #intro-start {
+            background: rgba(0, 180, 255, 0.15);
+            border: 1px solid rgba(0, 180, 255, 0.4);
+            color: #00ccff;
+            padding: 14px 40px;
+            font-family: 'Courier New', monospace;
+            font-size: 15px;
+            cursor: pointer;
+            letter-spacing: 4px;
+            transition: all 0.3s;
+        }
+        #intro-start:hover {
+            background: rgba(0, 180, 255, 0.3);
+            border-color: #00b4ff;
+            box-shadow: 0 0 30px rgba(0, 180, 255, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+
+    <!-- Intro Screen -->
+    <div id="intro-overlay">
+        <div id="intro-content">
+            <h1>CERN LHC</h1>
+            <div class="intro-sub">Large Hadron Collider</div>
+            <p>
+                Welcome to the interactive simulation of the world's largest
+                particle accelerator. The LHC at CERN near Geneva accelerates protons
+                to nearly the speed of light and collides them at 4 detector sites &mdash;
+                creating particles for fractions of a second that existed shortly after
+                the Big Bang.
+            </p>
+            <div class="intro-keys">
+                <div class="key-row"><span class="key">Space</span><span class="key-desc">Trigger collision</span></div>
+                <div class="key-row"><span class="key">E</span><span class="key-desc">Next accelerator stage</span></div>
+                <div class="key-row"><span class="key">&lt; &gt;</span><span class="key-desc">Slow motion / Fast forward</span></div>
+                <div class="key-row"><span class="key">Scroll</span><span class="key-desc">Zoom (+ drag to pan)</span></div>
+                <div class="key-row"><span class="key">P</span><span class="key-desc">Pause / Resume</span></div>
+                <div class="key-row"><span class="key">I</span><span class="key-desc">Open info panel</span></div>
+            </div>
+            <button id="intro-start" onclick="dismissIntro()">START SIMULATION</button>
+        </div>
+    </div>
+
+    <!-- Info Button -->
+    <button id="info-btn" onclick="toggleInfo()" title="Info & Guide (I)">i</button>
+
+    <!-- Info Panel -->
+    <div id="info-overlay">
+        <div id="info-content">
+
+            <div class="info-section">
+                <h2>What is the LHC?</h2>
+                <p>
+                    The <strong>Large Hadron Collider</strong> (LHC) is a 27 km long
+                    circular particle accelerator at <strong>CERN</strong>
+                    (European Organization for Nuclear Research) near Geneva, about 100 m
+                    underground. It is the largest and most powerful
+                    particle collision machine ever built.
+                </p>
+                <p>
+                    Two proton beams race in opposite directions around the ring,
+                    guided by <strong>superconducting magnets</strong> at -271.3 &deg;C. At four
+                    intersection points the beams are brought into collision. The energy
+                    released briefly creates new particles &mdash; the higher the
+                    energy, the heavier and rarer the particles that can be produced.
+                </p>
+            </div>
+
+            <div class="info-section">
+                <h2>The Four Major Detectors</h2>
+                <div class="info-grid">
+                    <div class="info-card">
+                        <h3 style="color:#ff6644">ATLAS</h3>
+                        <p>
+                            The largest detector (46 m long, 25 m tall). General-purpose detector
+                            for searching for the Higgs boson, supersymmetry, and extra
+                            dimensions. Discovered the Higgs boson together with CMS in 2012.
+                        </p>
+                    </div>
+                    <div class="info-card">
+                        <h3 style="color:#44aaff">CMS</h3>
+                        <p>
+                            <strong>Compact Muon Solenoid</strong> &mdash; compact, but weighing 14,000 tons.
+                            Has the world's strongest solenoid magnet. Second
+                            experiment to independently confirm the Higgs boson.
+                        </p>
+                    </div>
+                    <div class="info-card">
+                        <h3 style="color:#44ff88">ALICE</h3>
+                        <p>
+                            Specialized in <strong>lead-ion collisions</strong> to study the
+                            quark-gluon plasma &mdash; the state of matter
+                            microseconds after the Big Bang.
+                        </p>
+                    </div>
+                    <div class="info-card">
+                        <h3 style="color:#ffaa44">LHCb</h3>
+                        <p>
+                            Studies the difference between <strong>matter and antimatter</strong>
+                            by precisely measuring the decay of B mesons. Explains
+                            why the universe is made of matter.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-section">
+                <h2>What Happens During a Collision?</h2>
+                <p>
+                    Protons are made of <strong>quarks</strong> and <strong>gluons</strong>. In
+                    a collision at up to <span class="highlight">13.6 TeV</span>, it is not
+                    the protons as a whole that collide, but individual quarks and gluons inside
+                    them. The enormous kinetic energy is converted into mass according to
+                    <strong>E = mc&sup2;</strong> &mdash; creating new, sometimes very short-lived particles.
+                </p>
+                <p>
+                    The detectors measure the trajectory, energy, charge, and momentum of these particles.
+                    From billions of collisions, physicists search for extremely rare events,
+                    such as the creation of a <strong>Higgs boson</strong> (approx. 1 per 10 billion
+                    collisions).
+                </p>
+            </div>
+
+            <div class="info-section">
+                <h2>Particles in This Simulation</h2>
+                <p>The colors of collision products indicate the particle type. The higher the energy, the more likely rare, heavy particles are produced.</p>
+                <div class="particle-legend" id="particle-legend"></div>
+            </div>
+
+            <div class="info-section">
+                <h2>The Accelerator Chain</h2>
+                <p>Protons pass through a chain of accelerators before reaching the LHC:</p>
+                <ul>
+                    <li><strong>LINAC4</strong> &mdash; Linear accelerator, accelerates to <span class="highlight">160 MeV</span></li>
+                    <li><strong>PSB</strong> (Proton Synchrotron Booster) &mdash; <span class="highlight">2 GeV</span></li>
+                    <li><strong>PS</strong> (Proton Synchrotron) &mdash; <span class="highlight">26 GeV</span></li>
+                    <li><strong>SPS</strong> (Super Proton Synchrotron) &mdash; <span class="highlight">450 GeV</span></li>
+                    <li><strong>LHC</strong> &mdash; Final energy <span class="highlight">6.8 TeV</span> per beam (13.6 TeV center-of-mass)</li>
+                </ul>
+                <p>Press <code>E</code> repeatedly to step through the stages.</p>
+            </div>
+
+            <div class="info-section">
+                <h2>Detector Layers</h2>
+                <p>Each detector consists of concentric layers that stop different particles:</p>
+                <ul>
+                    <li><strong>Tracker</strong> (innermost) &mdash; Measures tracks of charged particles without stopping them</li>
+                    <li><strong>ECAL</strong> (Electromagnetic Calorimeter) &mdash; Stops electrons and photons</li>
+                    <li><strong>HCAL</strong> (Hadronic Calorimeter) &mdash; Stops hadrons (pions, kaons, protons)</li>
+                    <li><strong>Muon Chambers</strong> (outermost) &mdash; Only muons reach this layer</li>
+                </ul>
+                <p>Neutrinos pass through the entire detector invisibly (dashed line, MET = Missing Transverse Energy).</p>
+            </div>
+
+            <div class="info-section">
+                <h2>The Displays Explained</h2>
+                <ul>
+                    <li><strong>Energy (TeV)</strong> &mdash; Energy per beam.
+                        TeV = Teraelectronvolt. 6.8 TeV per beam = 13.6 TeV center-of-mass energy (LHC Run 3).</li>
+                    <li><strong>Luminosity (fb&sup1;)</strong> &mdash; Measure of the
+                        number of collisions per unit area.</li>
+                    <li><strong>Beam Status</strong> &mdash;
+                        <span style="color:#00ccff">INJECTION</span> &rarr;
+                        <span style="color:#ffaa44">RAMP</span> &rarr;
+                        <span style="color:#ffcc00">FLAT TOP</span> &rarr;
+                        <span style="color:#ff8844">SQUEEZE</span> &rarr;
+                        <span style="color:#44ff88">STABLE BEAMS</span></li>
+                    <li><strong>Accelerator</strong> &mdash; Current stage of the injector chain (LINAC4 &rarr; PSB &rarr; PS &rarr; SPS &rarr; LHC)</li>
+                    <li><strong>v(Proton)</strong> &mdash; Speed as a fraction of the speed of light (e.g. 0.999999991c at 6.8 TeV)</li>
+                    <li><strong>Bunches/Beam</strong> &mdash; Number of proton bunches per beam</li>
+                </ul>
+            </div>
+
+            <div class="info-section">
+                <h2>Controls</h2>
+                <div class="key-row"><span class="key">Space</span><span class="key-desc">Manually trigger collision (requires at least 1 TeV)</span></div>
+                <div class="key-row"><span class="key">E</span><span class="key-desc">Next accelerator stage (LINAC4 &rarr; PSB &rarr; ... &rarr; LHC)</span></div>
+                <div class="key-row"><span class="key">&lt; ( , )</span><span class="key-desc">Slow motion (0.05x to 0.5x)</span></div>
+                <div class="key-row"><span class="key">&gt; ( . )</span><span class="key-desc">Fast forward (2x to 4x)</span></div>
+                <div class="key-row"><span class="key">Scroll</span><span class="key-desc">Zoom in/out (up to 8x)</span></div>
+                <div class="key-row"><span class="key">Drag</span><span class="key-desc">Pan the view</span></div>
+                <div class="key-row"><span class="key">+ / -</span><span class="key-desc">Zoom via keyboard</span></div>
+                <div class="key-row"><span class="key">R</span><span class="key-desc">Reset zoom &amp; position</span></div>
+                <div class="key-row"><span class="key">P</span><span class="key-desc">Pause / resume simulation</span></div>
+                <div class="key-row"><span class="key">I</span><span class="key-desc">Open / close this info panel</span></div>
+                <div class="key-row"><span class="key">Esc</span><span class="key-desc">Close info panel</span></div>
+            </div>
+
+            <div class="info-section">
+                <h2>What Does the Visualization Show?</h2>
+                <ul>
+                    <li><strong style="color:#5090ff">Blue Bunches</strong> &mdash; Proton bunches clockwise (Beam 1). Focused at detectors (beta squeeze)</li>
+                    <li><strong style="color:#ff6050">Red Bunches</strong> &mdash; Proton bunches counter-clockwise (Beam 2)</li>
+                    <li><strong>Ring</strong> &mdash; The 27 km long LHC tunnel, simplified as a circle</li>
+                    <li><strong>Detectors</strong> &mdash; Four main experiments with layers: Tracker, ECAL, HCAL, Muon Chambers</li>
+                    <li><strong>Curved Tracks</strong> &mdash; Charged particles are deflected in the magnetic field (Lorentz force). Positive and negative charges curve in opposite directions</li>
+                    <li><strong>Dashed Lines</strong> &mdash; Neutrinos (invisible to the detector, &quot;Missing Energy&quot;)</li>
+                    <li><strong>Jets</strong> &mdash; Bundles of hadrons in a cone shape &mdash; the most common collision topology</li>
+                    <li><strong>Shockwave</strong> &mdash; Flash at a collision &mdash; the brighter, the more energetic</li>
+                </ul>
+            </div>
+
+            <div class="info-section" style="opacity:0.5; font-size:11px; text-align:center; border-top: 1px solid rgba(0,180,255,0.1); padding-top:20px;">
+                Simplified simulation for educational purposes. The real physics is
+                of course orders of magnitude more complex.<br>
+                Data &amp; Facts: CERN &mdash; home.cern
+            </div>
+        </div>
+    </div>
+
+    <!-- Tooltip -->
+    <div class="tooltip" id="tooltip"></div>
+
+    <div id="ui">
+        <h1>CERN LHC</h1>
+        <div class="subtitle">Large Hadron Collider Simulation</div>
+    </div>
+    <div id="stats">
+        <div><span class="label">Energy: </span><span class="value" id="energy">0.00</span> <span class="label">TeV</span></div>
+        <div><span class="label">Luminosity: </span><span class="value" id="luminosity">0.00</span> <span class="label">fb&sup1;</span></div>
+        <div><span class="label">Collisions: </span><span class="value" id="collisions">0</span></div>
+        <div><span class="label">Particles: </span><span class="value" id="particleCount">0</span></div>
+        <div><span class="label">Beam Status: </span><span class="value" id="beamStatus">INJECTION</span></div>
+        <div><span class="label">Accelerator: </span><span class="value" id="accelStage">&mdash;</span></div>
+        <div><span class="label">Bunches/Beam: </span><span class="value" id="bunchCount">8</span></div>
+        <div><span class="label">v(Proton): </span><span class="value" id="protonSpeed">0</span></div>
+        <div style="margin-top:12px; font-size:11px; color:#3a5a6b;">
+            <div>--- Discovered Particles ---</div>
+            <div id="discovered"></div>
+        </div>
+    </div>
+    <div id="event-log"></div>
+    <div id="controls">
+        <button id="btn-slower" onclick="changeSpeed(-1)">&laquo;</button>
+        <button id="btn-speed-label" onclick="resetSpeed()" style="min-width:62px; pointer-events:all;">1.0x</button>
+        <button id="btn-faster" onclick="changeSpeed(1)">&raquo;</button>
+        <button id="btn-collide" onclick="triggerCollision()">COLLIDE</button>
+        <button id="btn-boost" onclick="boostEnergy()">ENERGY +</button>
+        <button id="btn-pause" onclick="togglePause()">PAUSE</button>
+        <button id="btn-zout" onclick="zoomBtn(-1)">&minus;</button>
+        <button id="btn-zoom-label" onclick="zoomReset()" style="min-width:52px; pointer-events:all;">1.0x</button>
+        <button id="btn-zin" onclick="zoomBtn(1)">+</button>
+        <button id="btn-info" onclick="toggleInfo()">INFO</button>
+    </div>
+    <div id="detector-label"></div>
+
+    <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    let W, H, cx, cy, ringRadius, ringRx, ringRy;
+    const PERSPECTIVE = 0.55; // vertical squash for 3D perspective
+
+    function resize() {
+        W = canvas.width = window.innerWidth;
+        H = canvas.height = window.innerHeight;
+        cx = W / 2;
+        cy = H / 2;
+        ringRadius = Math.min(W, H) * 0.32;
+        ringRx = ringRadius;
+        ringRy = ringRadius * PERSPECTIVE;
+    }
+
+    // Position on the elliptical ring
+    function ringPos(angle, offset) {
+        const r = offset || 0;
+        return {
+            x: cx + Math.cos(angle) * (ringRx + r),
+            y: cy + Math.sin(angle) * (ringRy + r * PERSPECTIVE)
+        };
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    // State
+    let energy = 0;
+    let maxEnergy = 6.8;
+    let collisionCount = 0;
+    let luminosity = 0;
+    let paused = false;
+    let time = 0;
+    // Zoom & pan
+    let zoom = 1;
+    let targetZoom = 1;
+    let panX = 0, panY = 0;
+    let targetPanX = 0, targetPanY = 0;
+    let isDragging = false;
+    let dragStartX = 0, dragStartY = 0, dragPanStartX = 0, dragPanStartY = 0;
+    // Time scale
+    let timeScale = 1;
+    let targetTimeScale = 1;
+    const TIME_SCALES = [0.05, 0.1, 0.25, 0.5, 1, 2, 4];
+    let timeScaleIndex = 4; // starts at 1x
+    let beamPhase = 'INJECTION';
+    let acceleratorStage = 0;
+    const acceleratorChain = [
+        { name: 'LINAC4', target: 0.00016, phase: 'INJECTION' },
+        { name: 'PSB', target: 0.002, phase: 'INJECTION' },
+        { name: 'PS', target: 0.026, phase: 'INJECTION' },
+        { name: 'SPS', target: 0.45, phase: 'RAMP' },
+        { name: 'LHC RAMP', target: 6.8, phase: 'RAMP' },
+        { name: 'FLAT TOP', target: 6.8, phase: 'FLAT TOP' },
+        { name: 'SQUEEZE', target: 6.8, phase: 'SQUEEZE' },
+        { name: 'STABLE BEAMS', target: 6.8, phase: 'STABLE BEAMS' },
+    ];
+    let energyTarget = 0;
+    let isRamping = false;
+
+    // Beam bunches (protons circling in both directions)
+    const beamParticlesA = []; // clockwise
+    const beamParticlesB = []; // counter-clockwise
+    const BUNCHES_PER_BEAM = 8;
+    const PROTONS_PER_BUNCH = 14;
+
+    // Collision products
+    const products = [];
+    const trails = [];
+    const detectorHits = [];
+
+    // Detector positions (4 main experiments)
+    const detectors = [
+        { name: 'ATLAS', angle: 0, color: '#ff6644' },
+        { name: 'CMS', angle: Math.PI, color: '#44aaff' },
+        { name: 'ALICE', angle: Math.PI / 2, color: '#44ff88' },
+        { name: 'LHCb', angle: 3 * Math.PI / 2, color: '#ffaa44' }
+    ];
+
+    // Discovered particles
+    const particleTypes = [
+        { name: 'Higgs Boson (H\u2070)', mass: 125.1, color: '#ff4488', rarity: 0.02, charge: 0, lifetime: 0.05, type: 'boson', threshold: 0.5, stopsAt: 'none',
+          decaysTo: [['Photon (\u03b3)','Photon (\u03b3)'], ['Z Boson (Z\u2070)','Z Boson (Z\u2070)'], ['W Boson (W\u00b1)','W Boson (W\u00b1)']] },
+        { name: 'Top Quark (t)', mass: 173.0, color: '#ff8844', rarity: 0.08, charge: 0.67, lifetime: 0.08, type: 'quark', threshold: 0.4, stopsAt: 'hcal',
+          decaysTo: [['W Boson (W\u00b1)','Bottom Quark (b)']] },
+        { name: 'W Boson (W\u00b1)', mass: 80.4, color: '#44aaff', rarity: 0.15, charge: 1, lifetime: 0.06, type: 'boson', threshold: 0.3, stopsAt: 'none',
+          decaysTo: [['Muon (\u03bc)','Neutrino (\u03bd)'], ['Electron (e\u207b)','Neutrino (\u03bd)']] },
+        { name: 'Z Boson (Z\u2070)', mass: 91.2, color: '#44ffaa', rarity: 0.15, charge: 0, lifetime: 0.06, type: 'boson', threshold: 0.25, stopsAt: 'none',
+          decaysTo: [['Muon (\u03bc)','Muon (\u03bc)'], ['Electron (e\u207b)','Electron (e\u207b)']] },
+        { name: 'Tau Lepton (\u03c4)', mass: 1.78, color: '#aa44ff', rarity: 0.2, charge: -1, lifetime: 0.15, type: 'lepton', threshold: 0.15, stopsAt: 'ecal',
+          decaysTo: [['Pion (\u03c0)','Neutrino (\u03bd)']] },
+        { name: 'Bottom Quark (b)', mass: 4.18, color: '#ffff44', rarity: 0.25, charge: -0.33, lifetime: 0.2, type: 'quark', threshold: 0.1, stopsAt: 'hcal',
+          decaysTo: [] },
+        { name: 'Charm Quark (c)', mass: 1.27, color: '#ff44ff', rarity: 0.3, charge: 0.67, lifetime: 0.2, type: 'quark', threshold: 0.08, stopsAt: 'hcal',
+          decaysTo: [] },
+        { name: 'Kaon (K)', mass: 0.494, color: '#ffcc44', rarity: 0.5, charge: 1, lifetime: 0.4, type: 'hadron', threshold: 0.01, stopsAt: 'hcal',
+          decaysTo: [['Pion (\u03c0)','Pion (\u03c0)']] },
+        { name: 'Muon (\u03bc)', mass: 0.106, color: '#88ff44', rarity: 0.4, charge: -1, lifetime: 0.8, type: 'lepton', threshold: 0.01, stopsAt: 'muon',
+          decaysTo: [] },
+        { name: 'Pion (\u03c0)', mass: 0.135, color: '#aaaaff', rarity: 0.6, charge: 1, lifetime: 0.5, type: 'hadron', threshold: 0.005, stopsAt: 'hcal',
+          decaysTo: [['Photon (\u03b3)','Photon (\u03b3)']] },
+        { name: 'Photon (\u03b3)', mass: 0, color: '#ffffff', rarity: 0.8, charge: 0, lifetime: 1.0, type: 'boson', threshold: 0, stopsAt: 'ecal',
+          decaysTo: [] },
+        { name: 'Gluon (g)', mass: 0, color: '#ff8888', rarity: 0.7, charge: 0, lifetime: 0.3, type: 'boson', threshold: 0, stopsAt: 'hcal',
+          decaysTo: [] },
+        { name: 'Electron (e\u207b)', mass: 0.000511, color: '#88ffff', rarity: 0.7, charge: -1, lifetime: 1.0, type: 'lepton', threshold: 0, stopsAt: 'ecal',
+          decaysTo: [] },
+        { name: 'Neutrino (\u03bd)', mass: 0, color: '#666688', rarity: 0.4, charge: 0, lifetime: 0.3, type: 'lepton', threshold: 0, stopsAt: 'none',
+          decaysTo: [] },
+    ];
+    function getParticleByName(n) { return particleTypes.find(p => p.name === n); }
+    const discovered = new Map(); // name -> count
+
+    // Gaussian random helper
+    function gaussRandom() {
+        let u = 0, v = 0;
+        while (u === 0) u = Math.random();
+        while (v === 0) v = Math.random();
+        return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+    }
+
+    // Initialize beam as bunches
+    for (let b = 0; b < BUNCHES_PER_BEAM; b++) {
+        const bunchCenter = (b / BUNCHES_PER_BEAM) * Math.PI * 2;
+        for (let p = 0; p < PROTONS_PER_BUNCH; p++) {
+            const spread = gaussRandom() * 0.015;
+            beamParticlesA.push({ angle: bunchCenter + spread, bunchId: b, wobble: Math.random() * 0.5 });
+            beamParticlesB.push({ angle: bunchCenter + 0.01 + gaussRandom() * 0.015, bunchId: b, wobble: Math.random() * 0.5 });
+        }
+    }
+
+    function logEvent(text, type = '') {
+        const log = document.getElementById('event-log');
+        const div = document.createElement('div');
+        div.className = 'event ' + type;
+        const t = new Date().toLocaleTimeString();
+        div.textContent = `[${t}] ${text}`;
+        log.appendChild(div);
+        if (log.children.length > 12) log.removeChild(log.firstChild);
+    }
+
+    function spawnProduct(collX, collY, angle, speed, pType, chargeSign) {
+        const ch = chargeSign !== undefined ? chargeSign : (pType.charge !== 0 ? (Math.random() > 0.5 ? 1 : -1) : 0);
+        const isNeutrino = pType.name.startsWith('Neutrino');
+        if (pType) {
+            const prev = discovered.get(pType.name) || 0;
+            discovered.set(pType.name, prev + 1);
+            if (prev === 0) logEvent(`NEW PARTICLE: ${pType.name} (${pType.mass} GeV/c\u00b2)`, 'discovery');
+            updateDiscovered();
+        }
+        products.push({
+            x: collX, y: collY,
+            vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
+            life: 1,
+            color: pType.color,
+            type: pType.name,
+            charge: ch * pType.charge,
+            momentum: speed * (pType.mass || 1),
+            stopsAt: pType.stopsAt,
+            isNeutrino,
+            size: 1 + Math.random() * 2,
+            decay: 0.003 + (1 - pType.lifetime) * 0.015,
+            trail: []
+        });
+    }
+
+    function triggerCollision() {
+        if (energy < 0.01) { logEvent('Energy too low for collision!'); return; }
+
+        const det = detectors[Math.floor(Math.random() * detectors.length)];
+        const cp = ringPos(det.angle);
+        const collX = cp.x;
+        const collY = cp.y;
+
+        collisionCount++;
+        luminosity += energy * 0.01;
+        detectorHits.push({ x: collX, y: collY, life: 1, color: det.color, radius: 0 });
+
+        const energyFactor = energy / maxEnergy;
+        const topology = Math.random();
+
+        if (topology < 0.03 * energyFactor && energy > 2) {
+            // Higgs event: H -> yy or H -> ZZ -> 4l
+            const higgs = getParticleByName('Higgs Boson (H\u2070)');
+            if (Math.random() > 0.5) {
+                // H -> gamma gamma
+                const a = Math.random() * Math.PI * 2;
+                const photon = getParticleByName('Photon (\u03b3)');
+                spawnProduct(collX, collY, a, 3.5 + Math.random(), photon);
+                spawnProduct(collX, collY, a + Math.PI + gaussRandom() * 0.1, 3.5 + Math.random(), photon);
+                logEvent(`HIGGS EVENT: H\u2070 \u2192 \u03b3\u03b3 at ${det.name}!`, 'discovery');
+            } else {
+                // H -> ZZ -> 4 leptons
+                const muon = getParticleByName('Muon (\u03bc)');
+                const a = Math.random() * Math.PI * 2;
+                for (let i = 0; i < 4; i++) {
+                    spawnProduct(collX, collY, a + i * Math.PI / 2 + gaussRandom() * 0.3, 2.5 + Math.random(), muon, i % 2 === 0 ? 1 : -1);
+                }
+                logEvent(`HIGGS EVENT: H\u2070 \u2192 ZZ \u2192 4\u03bc at ${det.name}!`, 'discovery');
+            }
+            const hPrev = discovered.get(higgs.name) || 0;
+            discovered.set(higgs.name, hPrev + 1);
+            if (hPrev === 0) logEvent(`NEW PARTICLE: ${higgs.name} (${higgs.mass} GeV/c\u00b2)`, 'discovery');
+            updateDiscovered();
+        } else if (topology < 0.15 * energyFactor && energy > 0.5) {
+            // Z -> lepton pair (back-to-back)
+            const z = getParticleByName('Z Boson (Z\u2070)');
+            const lepton = Math.random() > 0.5 ? getParticleByName('Muon (\u03bc)') : getParticleByName('Electron (e\u207b)');
+            const a = Math.random() * Math.PI * 2;
+            spawnProduct(collX, collY, a, 3 + Math.random() * 2, lepton, 1);
+            spawnProduct(collX, collY, a + Math.PI + gaussRandom() * 0.05, 3 + Math.random() * 2, lepton, -1);
+            const zPrev = discovered.get(z.name) || 0;
+            discovered.set(z.name, zPrev + 1);
+            if (zPrev === 0) logEvent(`NEW PARTICLE: ${z.name}`, 'discovery');
+            updateDiscovered();
+            logEvent(`Z\u2070 \u2192 ${lepton.name.split(' ')[0]}\u207a${lepton.name.split(' ')[0]}\u207b at ${det.name}`, 'collision');
+        } else {
+            // Jet-pair topology (most common): 2-4 jet cones
+            const numJets = 2 + Math.floor(Math.random() * 3);
+            const jetAngles = [];
+            const baseAngle = Math.random() * Math.PI * 2;
+            for (let j = 0; j < numJets; j++) {
+                jetAngles.push(baseAngle + j * (Math.PI * 2 / numJets) + gaussRandom() * 0.2);
+            }
+            let totalProducts = 0;
+            for (const ja of jetAngles) {
+                const jetSize = 3 + Math.floor(Math.random() * 4);
+                for (let p = 0; p < jetSize; p++) {
+                    const spread = gaussRandom() * 0.3; // +-30 degree cone
+                    const speed = 1 + Math.random() * 3 * energyFactor;
+                    const pType = selectParticle();
+                    spawnProduct(collX, collY, ja + spread, speed, pType);
+                    totalProducts++;
+                }
+            }
+            // Add neutrino (missing energy) sometimes
+            if (Math.random() < 0.3) {
+                const nu = getParticleByName('Neutrino (\u03bd)');
+                spawnProduct(collX, collY, Math.random() * Math.PI * 2, 4, nu);
+                totalProducts++;
+            }
+            logEvent(`Collision at ${det.name} @ ${energy.toFixed(2)} TeV \u2014 ${numJets} jets, ${totalProducts} particles`, 'collision');
+        }
+    }
+
+    function selectParticle() {
+        const r = Math.random();
+        const energyFactor = energy / maxEnergy;
+        // Filter by threshold
+        const available = particleTypes.filter(p => energy >= p.threshold && !p.name.startsWith('Higgs') && !p.name.startsWith('Neutrino'));
+        for (const p of available) {
+            if (r < p.rarity * energyFactor) return p;
+        }
+        // Default: pion or kaon (common jet particles)
+        const hadrons = available.filter(p => p.type === 'hadron');
+        return hadrons.length > 0 ? hadrons[Math.floor(Math.random() * hadrons.length)] : available[available.length - 1] || particleTypes[9];
+    }
+
+    function boostEnergy() {
+        if (acceleratorStage >= acceleratorChain.length) {
+            logEvent('Maximum energy reached \u2014 STABLE BEAMS!');
+            return;
+        }
+        const stage = acceleratorChain[acceleratorStage];
+        energyTarget = stage.target;
+        beamPhase = stage.phase;
+        isRamping = true;
+        logEvent(`${stage.name} \u2192 Target: ${energyTarget >= 0.01 ? energyTarget.toFixed(2) + ' TeV' : (energyTarget * 1000).toFixed(1) + ' GeV'}`);
+        acceleratorStage++;
+    }
+
+    function togglePause() {
+        paused = !paused;
+        document.getElementById('btn-pause').textContent = paused ? 'RESUME' : 'PAUSE';
+        document.getElementById('btn-pause').classList.toggle('active', paused);
+    }
+
+    function changeSpeed(dir) {
+        timeScaleIndex = Math.max(0, Math.min(TIME_SCALES.length - 1, timeScaleIndex + dir));
+        targetTimeScale = TIME_SCALES[timeScaleIndex];
+        updateSpeedButton();
+    }
+    function resetSpeed() {
+        timeScaleIndex = 4; // 1x
+        targetTimeScale = 1;
+        updateSpeedButton();
+    }
+    function updateSpeedButton() {
+        const label = targetTimeScale < 1 ? targetTimeScale.toFixed(2) + 'x' : targetTimeScale.toFixed(0) + 'x';
+        document.getElementById('btn-speed-label').textContent = label;
+        document.getElementById('btn-slower').classList.toggle('active', timeScaleIndex < 4);
+        document.getElementById('btn-faster').classList.toggle('active', timeScaleIndex > 4);
+    }
+
+    function zoomBtn(dir) {
+        targetZoom = Math.max(0.5, Math.min(8, targetZoom * (dir > 0 ? 1.25 : 1 / 1.25)));
+    }
+    function zoomReset() {
+        targetZoom = 1;
+        targetPanX = 0;
+        targetPanY = 0;
+    }
+
+    function updateDiscovered() {
+        const el = document.getElementById('discovered');
+        el.innerHTML = '';
+        for (const p of particleTypes) {
+            const count = discovered.get(p.name);
+            if (count) {
+                const d = document.createElement('div');
+                d.style.color = p.color;
+                d.textContent = `\u2713 ${p.name} \u00d7${count}`;
+                el.appendChild(d);
+            }
+        }
+    }
+
+    // Auto-collisions
+    let autoCollideTimer = 0;
+    let introActive = true;
+    let infoOpen = false;
+
+    function update() {
+        if (paused || introActive) return;
+        // Smooth zoom/pan/timescale interpolation
+        zoom += (targetZoom - zoom) * 0.12;
+        panX += (targetPanX - panX) * 0.12;
+        panY += (targetPanY - panY) * 0.12;
+        timeScale += (targetTimeScale - timeScale) * 0.15;
+        const dt = 0.016 * timeScale;
+        time += dt;
+
+        // Beam speed based on energy (no movement at 0 energy)
+        const speedFactor = (energy / maxEnergy) * 0.055 * timeScale;
+
+        // Update beam particles
+        for (const p of beamParticlesA) {
+            p.angle += speedFactor;
+            if (p.angle > Math.PI * 2) p.angle -= Math.PI * 2;
+        }
+        for (const p of beamParticlesB) {
+            p.angle -= speedFactor;
+            if (p.angle < 0) p.angle += Math.PI * 2;
+        }
+
+        // Auto collisions
+        autoCollideTimer += dt;
+        if (autoCollideTimer > (3 - energy / maxEnergy * 2) && energy > 0.1 && beamPhase === 'STABLE BEAMS') {
+            autoCollideTimer = 0;
+            triggerCollision();
+        }
+
+        // Update collision products with Lorentz-force curvature
+        for (let i = products.length - 1; i >= 0; i--) {
+            const p = products[i];
+            // Curved tracks for charged particles
+            if (p.charge && p.charge !== 0) {
+                const curvature = 0.015 * p.charge / (p.momentum || 1);
+                const cos_c = Math.cos(curvature), sin_c = Math.sin(curvature);
+                const nvx = p.vx * cos_c - p.vy * sin_c;
+                const nvy = p.vx * sin_c + p.vy * cos_c;
+                p.vx = nvx;
+                p.vy = nvy;
+            }
+            p.x += p.vx * timeScale;
+            p.y += p.vy * timeScale;
+            p.vx *= Math.pow(0.995, timeScale);
+            p.vy *= Math.pow(0.995, timeScale);
+            p.life -= p.decay * timeScale;
+
+            // Check if particle should stop at detector layer
+            if (p.stopsAt && p.stopsAt !== 'none') {
+                for (const det of detectors) {
+                    const dp = ringPos(det.angle);
+                    const distToDet = Math.hypot(p.x - dp.x, p.y - dp.y);
+                    if (distToDet < 65) {
+                        const layerRadii = { ecal: 22, hcal: 36, muon: 55 };
+                        const stopR = layerRadii[p.stopsAt];
+                        if (stopR && distToDet > stopR && distToDet < stopR + 6) {
+                            p.life = Math.min(p.life, 0.1);
+                            p.vx *= 0.3;
+                            p.vy *= 0.3;
+                        }
+                        break;
+                    }
+                }
+            }
+
+            p.trail.push({ x: p.x, y: p.y, life: p.life });
+            if (p.trail.length > 35) p.trail.shift();
+            if (p.life <= 0) products.splice(i, 1);
+        }
+
+        // Update detector hits
+        for (let i = detectorHits.length - 1; i >= 0; i--) {
+            const h = detectorHits[i];
+            h.life -= 0.02 * timeScale;
+            h.radius += 4 * timeScale;
+            if (h.life <= 0) detectorHits.splice(i, 1);
+        }
+
+        // Gradual energy ramp
+        if (isRamping && energy < energyTarget) {
+            const rampSpeed = Math.max(0.0001, (energyTarget - energy) * 0.03) * timeScale;
+            energy = Math.min(energy + rampSpeed, energyTarget);
+            if (Math.abs(energy - energyTarget) < 0.0001) {
+                energy = energyTarget;
+                isRamping = false;
+            }
+        }
+
+        // Beam phase colors
+        const phaseColors = {
+            'INJECTION': '#00ccff', 'RAMP': '#ffaa44', 'FLAT TOP': '#ffcc00',
+            'SQUEEZE': '#ff8844', 'ADJUST': '#ff6644', 'STABLE BEAMS': '#44ff88'
+        };
+
+        // Proton speed as fraction of c: v/c = sqrt(1 - (m/E)^2), m_proton = 0.000938 TeV
+        const protonSpeed = energy > 0.001 ? Math.sqrt(1 - Math.pow(0.000938 / (energy + 0.000938), 2)) : 0;
+
+        document.getElementById('energy').textContent = energy >= 0.01 ? energy.toFixed(2) : (energy * 1000).toFixed(1) + ' GeV / ';
+        document.getElementById('luminosity').textContent = luminosity.toFixed(2);
+        document.getElementById('collisions').textContent = collisionCount;
+        document.getElementById('particleCount').textContent = products.length;
+        document.getElementById('beamStatus').textContent = beamPhase;
+        document.getElementById('beamStatus').style.color = phaseColors[beamPhase] || '#00ccff';
+        const stageEl = document.getElementById('accelStage');
+        if (stageEl) stageEl.textContent = acceleratorStage > 0 ? acceleratorChain[acceleratorStage - 1].name : '\u2014';
+        const speedEl = document.getElementById('protonSpeed');
+        if (speedEl) speedEl.textContent = protonSpeed > 0 ? protonSpeed.toFixed(9) + 'c' : '0';
+        const bunchEl = document.getElementById('bunchCount');
+        if (bunchEl) bunchEl.textContent = BUNCHES_PER_BEAM;
+    }
+
+    function drawRing() {
+        // Outer glow
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, ringRx, ringRy, 0, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(0, 100, 180, ${0.08 + Math.sin(time * 2) * 0.03})`;
+        ctx.lineWidth = 40;
+        ctx.stroke();
+
+        // Ring
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, ringRx, ringRy, 0, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(0, 80, 140, 0.4)';
+        ctx.lineWidth = 8;
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, ringRx, ringRy, 0, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(0, 140, 220, 0.15)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Inner ring
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, ringRx - 6, ringRy - 6 * PERSPECTIVE, 0, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(0, 60, 100, 0.3)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, ringRx + 6, ringRy + 6 * PERSPECTIVE, 0, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(0, 60, 100, 0.3)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+    }
+
+    // Beta squeeze factor: wobble reduces near detector positions
+    function betaSqueeze(angle) {
+        let minDist = Math.PI;
+        for (const det of detectors) {
+            let d = Math.abs(angle - det.angle);
+            if (d > Math.PI) d = Math.PI * 2 - d;
+            if (d < minDist) minDist = d;
+        }
+        // Squeeze: wobble multiplier 0.15 at detector, 1.0 far away
+        return 0.15 + 0.85 * Math.min(minDist / (Math.PI / 4), 1.0);
+    }
+
+    function drawBeams() {
+        const speedFactor = energy / maxEnergy;
+        const isSqueezed = beamPhase === 'SQUEEZE' || beamPhase === 'STABLE BEAMS';
+
+        // Beam A (clockwise) - blue
+        for (const p of beamParticlesA) {
+            const squeeze = isSqueezed ? betaSqueeze(p.angle) : 1.0;
+            const wobble = Math.sin(p.angle * 8 + time * 5) * (2 - speedFactor) * squeeze;
+            const pos = ringPos(p.angle, wobble);
+
+            ctx.beginPath();
+            ctx.arc(pos.x, pos.y, 1.5 + speedFactor, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(80, 160, 255, ${0.6 + speedFactor * 0.4})`;
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.arc(pos.x, pos.y, 4 + speedFactor * 2, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(40, 120, 255, ${0.1 + speedFactor * 0.1})`;
+            ctx.fill();
+        }
+
+        // Beam B (counter-clockwise) - red
+        for (const p of beamParticlesB) {
+            const squeeze = isSqueezed ? betaSqueeze(p.angle) : 1.0;
+            const wobble = Math.sin(p.angle * 8 - time * 5) * (2 - speedFactor) * squeeze;
+            const pos = ringPos(p.angle, wobble);
+
+            ctx.beginPath();
+            ctx.arc(pos.x, pos.y, 1.5 + speedFactor, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(255, 100, 80, ${0.6 + speedFactor * 0.4})`;
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.arc(pos.x, pos.y, 4 + speedFactor * 2, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(255, 60, 40, ${0.1 + speedFactor * 0.1})`;
+            ctx.fill();
+        }
+    }
+
+    const detectorLayers = [
+        { name: 'Tracker', radius: 12, width: 1.5, colorMod: '55', desc: 'Tracks' },
+        { name: 'ECAL', radius: 22, width: 3, colorMod: '44', desc: 'e/\u03b3' },
+        { name: 'HCAL', radius: 36, width: 5, colorMod: '33', desc: 'Hadrons' },
+        { name: 'Muon', radius: 52, width: 3, colorMod: '44', desc: '\u03bc' },
+    ];
+
+    function drawDetectors() {
+        for (const det of detectors) {
+            const dp = ringPos(det.angle);
+
+            ctx.save();
+            ctx.translate(dp.x, dp.y);
+            // Tangent angle on the ellipse for rotation
+            const tangent = Math.atan2(-ringRx * Math.sin(det.angle), ringRy * Math.cos(det.angle)) - Math.PI / 2;
+            ctx.rotate(tangent);
+
+            // Outer octagonal housing
+            const size = 56 + Math.sin(time * 3) * 1;
+            ctx.beginPath();
+            for (let i = 0; i < 8; i++) {
+                const a = (i / 8) * Math.PI * 2;
+                const dx = Math.cos(a) * size;
+                const dy = Math.sin(a) * size;
+                if (i === 0) ctx.moveTo(dx, dy);
+                else ctx.lineTo(dx, dy);
+            }
+            ctx.closePath();
+            ctx.strokeStyle = det.color + '44';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            ctx.fillStyle = det.color + '06';
+            ctx.fill();
+
+            // Draw detector layers
+            for (const layer of detectorLayers) {
+                ctx.beginPath();
+                ctx.arc(0, 0, layer.radius, 0, Math.PI * 2);
+                ctx.strokeStyle = det.color + layer.colorMod;
+                ctx.lineWidth = layer.width;
+                ctx.stroke();
+
+                // Fill between layers for calorimeters
+                if (layer.name === 'ECAL' || layer.name === 'HCAL') {
+                    ctx.beginPath();
+                    ctx.arc(0, 0, layer.radius, 0, Math.PI * 2);
+                    ctx.fillStyle = det.color + '08';
+                    ctx.fill();
+                }
+            }
+
+            // Layer labels (small, readable)
+            ctx.rotate(-tangent); // un-rotate for readable text
+            ctx.font = '7px Courier New';
+            ctx.textAlign = 'left';
+            ctx.fillStyle = det.color + '88';
+            ctx.fillText('TRK', 2, -detectorLayers[0].radius + 3);
+            ctx.fillText('ECAL', 2, -detectorLayers[1].radius + 3);
+            ctx.fillText('HCAL', 2, -detectorLayers[2].radius + 3);
+            ctx.fillText('MUON', 2, -detectorLayers[3].radius + 3);
+
+            ctx.restore();
+
+            // Detector name label
+            const lp = ringPos(det.angle, 65);
+            const labelX = lp.x;
+            const labelY = lp.y;
+            ctx.font = '11px Courier New';
+            ctx.fillStyle = det.color;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(det.name, labelX, labelY);
+        }
+    }
+
+    function drawCollisionProducts() {
+        for (const p of products) {
+            // Trail
+            if (p.isNeutrino) {
+                ctx.setLineDash([4, 6]);
+            }
+            for (let i = 0; i < p.trail.length - 1; i++) {
+                const alpha = (i / p.trail.length) * p.life * (p.isNeutrino ? 0.25 : 0.5);
+                ctx.beginPath();
+                ctx.moveTo(p.trail[i].x, p.trail[i].y);
+                ctx.lineTo(p.trail[i + 1].x, p.trail[i + 1].y);
+                ctx.strokeStyle = p.color + Math.floor(alpha * 255).toString(16).padStart(2, '0');
+                ctx.lineWidth = p.size * p.life;
+                ctx.stroke();
+            }
+            if (p.isNeutrino) {
+                ctx.setLineDash([]);
+            }
+
+            // Particle dot
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size * p.life * 1.5, 0, Math.PI * 2);
+            ctx.fillStyle = p.color;
+            ctx.globalAlpha = p.life * (p.isNeutrino ? 0.4 : 1);
+            ctx.fill();
+            ctx.globalAlpha = 1;
+
+            // MET label for neutrinos
+            if (p.isNeutrino && p.life > 0.5) {
+                ctx.font = '9px Courier New';
+                ctx.fillStyle = '#666688';
+                ctx.textAlign = 'left';
+                ctx.fillText('MET', p.x + 6, p.y - 4);
+            }
+
+            // Glow (skip for neutrinos)
+            if (!p.isNeutrino) {
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size * p.life * 4, 0, Math.PI * 2);
+                const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size * p.life * 4);
+                grad.addColorStop(0, p.color + '44');
+                grad.addColorStop(1, p.color + '00');
+                ctx.fillStyle = grad;
+                ctx.fill();
+            }
+        }
+    }
+
+    function drawDetectorHits() {
+        for (const h of detectorHits) {
+            // Shockwave
+            ctx.beginPath();
+            ctx.arc(h.x, h.y, h.radius, 0, Math.PI * 2);
+            ctx.strokeStyle = h.color + Math.floor(h.life * 180).toString(16).padStart(2, '0');
+            ctx.lineWidth = 3 * h.life;
+            ctx.stroke();
+
+            // Central flash
+            const flashR = 30 * h.life;
+            const grad = ctx.createRadialGradient(h.x, h.y, 0, h.x, h.y, flashR);
+            grad.addColorStop(0, '#ffffff' + Math.floor(h.life * 255).toString(16).padStart(2, '0'));
+            grad.addColorStop(0.3, h.color + Math.floor(h.life * 150).toString(16).padStart(2, '0'));
+            grad.addColorStop(1, h.color + '00');
+            ctx.beginPath();
+            ctx.arc(h.x, h.y, flashR, 0, Math.PI * 2);
+            ctx.fillStyle = grad;
+            ctx.fill();
+        }
+    }
+
+    function drawBackground() {
+        // Dark background with subtle gradient
+        const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(W, H) * 0.7);
+        grad.addColorStop(0, '#0d0d1a');
+        grad.addColorStop(1, '#060610');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, W, H);
+
+        // Grid hint
+        ctx.strokeStyle = 'rgba(0, 60, 100, 0.06)';
+        ctx.lineWidth = 1;
+        for (let x = 0; x < W; x += 80) {
+            ctx.beginPath();
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, H);
+            ctx.stroke();
+        }
+        for (let y = 0; y < H; y += 80) {
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(W, y);
+            ctx.stroke();
+        }
+    }
+
+    function drawEnergyMeter() {
+        const meterX = 20;
+        const meterY = H - 40;
+        const meterW = 200;
+        const meterH = 6;
+
+        ctx.fillStyle = 'rgba(0, 40, 60, 0.5)';
+        ctx.fillRect(meterX, meterY, meterW, meterH);
+
+        const fill = (energy / maxEnergy) * meterW;
+        const grad = ctx.createLinearGradient(meterX, 0, meterX + meterW, 0);
+        grad.addColorStop(0, '#0066aa');
+        grad.addColorStop(0.5, '#00aaff');
+        grad.addColorStop(1, '#ff4488');
+        ctx.fillStyle = grad;
+        ctx.fillRect(meterX, meterY, fill, meterH);
+
+        ctx.font = '10px Courier New';
+        ctx.fillStyle = '#4a7a9b';
+        ctx.textAlign = 'left';
+        const eLabel = energy >= 0.01 ? `${energy.toFixed(2)} TeV` : `${(energy * 1000).toFixed(1)} GeV`;
+        ctx.fillText(`${eLabel} / ${maxEnergy} TeV  (\u221As = ${(energy * 2).toFixed(1)} TeV)`, meterX, meterY - 6);
+    }
+
+    // --- Landmarks & Geography ---
+    // Real villages/places the LHC passes under, mapped to ring angles
+    // ATLAS=0 (Point 1, Meyrin), ALICE=PI/2 (Point 2, St-Genis), CMS=PI (Point 5, Cessy), LHCb=3PI/2 (Point 8, Ferney)
+    const landmarks = [
+        // Villages along the ring
+        { angle: 0.35, name: 'Meyrin', type: 'village', country: 'CH' },
+        { angle: 1.1, name: 'St-Genis-Pouilly', type: 'village', country: 'FR' },
+        { angle: 1.9, name: 'Pr\u00e9vessin', type: 'village', country: 'FR' },
+        { angle: 2.6, name: 'Cessy', type: 'village', country: 'FR' },
+        { angle: 3.5, name: 'Crozet', type: 'village', country: 'FR' },
+        { angle: 4.2, name: 'Versonnex', type: 'village', country: 'FR' },
+        { angle: 5.1, name: 'Ferney-Voltaire', type: 'village', country: 'FR' },
+        { angle: 5.8, name: 'CERN', type: 'cern', country: 'CH' },
+        // Geographical features
+        { angle: 3.1, name: 'Jura', type: 'mountain' },
+        { angle: 6.05, name: 'Gen\u00e8ve', type: 'city', country: 'CH' },
+    ];
+
+    // Border crossing angles (approx where FR/CH border crosses the ring)
+    const borderAngle1 = 0.7;   // east crossing
+    const borderAngle2 = 5.5;   // west crossing
+
+    function drawLandmarks() {
+        // --- Terrain hints ---
+        // Lac Léman (southeast of ring)
+        const lakeCenter = ringPos(6.0, ringRx * 0.6);
+        ctx.beginPath();
+        ctx.ellipse(lakeCenter.x, lakeCenter.y, ringRx * 0.35, ringRy * 0.18, -0.2, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(20, 50, 100, 0.25)';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(50, 120, 180, 0.2)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        ctx.font = '12px Courier New';
+        ctx.fillStyle = 'rgba(60, 140, 200, 0.5)';
+        ctx.textAlign = 'center';
+        ctx.fillText('Lac L\u00e9man', lakeCenter.x, lakeCenter.y + 5);
+
+        // Jura mountains (west/northwest)
+        for (let i = 0; i < 6; i++) {
+            const a = 2.7 + i * 0.22;
+            const mp = ringPos(a, ringRx * 0.38 + i * 12);
+            const mh = 22 + Math.sin(i * 2.3) * 10;
+            const mw = 18 + i * 4;
+            ctx.beginPath();
+            ctx.moveTo(mp.x - mw, mp.y);
+            ctx.lineTo(mp.x - 3 + i, mp.y - mh);
+            ctx.lineTo(mp.x + 3 + i, mp.y - mh + 4);
+            ctx.lineTo(mp.x + mw, mp.y);
+            ctx.closePath();
+            ctx.fillStyle = `rgba(35, 65, 45, ${0.35 - i * 0.04})`;
+            ctx.fill();
+            ctx.strokeStyle = `rgba(55, 95, 65, ${0.25 - i * 0.03})`;
+            ctx.lineWidth = 0.8;
+            ctx.stroke();
+            if (mh > 18) {
+                ctx.beginPath();
+                ctx.moveTo(mp.x - 3 + i, mp.y - mh);
+                ctx.lineTo(mp.x - 6 + i, mp.y - mh + 6);
+                ctx.lineTo(mp.x + 6 + i, mp.y - mh + 7);
+                ctx.lineTo(mp.x + 3 + i, mp.y - mh + 4);
+                ctx.closePath();
+                ctx.fillStyle = `rgba(210, 225, 240, ${0.25 - i * 0.03})`;
+                ctx.fill();
+            }
+        }
+
+        // Alps hint (far southeast)
+        for (let i = 0; i < 5; i++) {
+            const ap = ringPos(5.6 + i * 0.2, ringRx * 0.75 + i * 15);
+            const ah = 28 + Math.sin(i * 1.7) * 12;
+            ctx.beginPath();
+            ctx.moveTo(ap.x - 22, ap.y);
+            ctx.lineTo(ap.x, ap.y - ah);
+            ctx.lineTo(ap.x + 22, ap.y);
+            ctx.closePath();
+            ctx.fillStyle = `rgba(30, 40, 65, ${0.2 - i * 0.025})`;
+            ctx.fill();
+            // Snow
+            if (ah > 24) {
+                ctx.beginPath();
+                ctx.moveTo(ap.x, ap.y - ah);
+                ctx.lineTo(ap.x - 6, ap.y - ah + 8);
+                ctx.lineTo(ap.x + 6, ap.y - ah + 8);
+                ctx.closePath();
+                ctx.fillStyle = `rgba(200, 215, 240, ${0.15})`;
+                ctx.fill();
+            }
+        }
+        // Alps label
+        const alpsLabel = ringPos(5.8, ringRx * 0.9);
+        ctx.font = '11px Courier New';
+        ctx.fillStyle = 'rgba(90, 100, 140, 0.35)';
+        ctx.textAlign = 'center';
+        ctx.fillText('Alps \u26F0', alpsLabel.x, alpsLabel.y);
+
+        // --- France / Switzerland border line ---
+        const b1 = ringPos(borderAngle1, -ringRx * 0.3);
+        const b2 = ringPos(borderAngle2, -ringRx * 0.3);
+        const b1o = ringPos(borderAngle1, ringRx * 0.55);
+        const b2o = ringPos(borderAngle2, ringRx * 0.55);
+        ctx.setLineDash([8, 5]);
+        ctx.beginPath();
+        ctx.moveTo(b1.x, b1.y);
+        ctx.lineTo(b1o.x, b1o.y);
+        ctx.strokeStyle = 'rgba(200, 180, 110, 0.3)';
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(b2.x, b2.y);
+        ctx.lineTo(b2o.x, b2o.y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Country labels
+        const frPos = ringPos(Math.PI, ringRx * 0.38);
+        const chPos = ringPos(5.6, ringRx * 0.38);
+        ctx.font = '13px Courier New';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = 'rgba(200, 180, 110, 0.4)';
+        ctx.fillText('FRANCE', frPos.x, frPos.y - 12);
+        ctx.fillText('SWITZERLAND', chPos.x, chPos.y - 12);
+
+        // --- Village markers & labels ---
+        for (const lm of landmarks) {
+            const dist = lm.type === 'city' ? ringRx * 0.3 : ringRx * 0.2;
+            const p = ringPos(lm.angle, dist);
+
+            if (lm.type === 'village') {
+                // House cluster (2-3 houses)
+                for (let h = 0; h < 2; h++) {
+                    const hx = p.x - 6 + h * 10;
+                    const s = 5 + h * 2;
+                    ctx.fillStyle = 'rgba(140, 125, 90, 0.4)';
+                    ctx.fillRect(hx - s, p.y - s, s * 2, s * 1.5);
+                    ctx.beginPath();
+                    ctx.moveTo(hx - s - 2, p.y - s);
+                    ctx.lineTo(hx, p.y - s * 2.1);
+                    ctx.lineTo(hx + s + 2, p.y - s);
+                    ctx.closePath();
+                    ctx.fillStyle = 'rgba(160, 100, 55, 0.4)';
+                    ctx.fill();
+                }
+                // Church spire for the first village marker
+                ctx.beginPath();
+                ctx.moveTo(p.x + 16, p.y - 4);
+                ctx.lineTo(p.x + 16, p.y - 16);
+                ctx.strokeStyle = 'rgba(140, 125, 90, 0.35)';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+                // Name
+                ctx.font = '10px Courier New';
+                ctx.fillStyle = 'rgba(170, 160, 120, 0.6)';
+                ctx.textAlign = 'center';
+                ctx.fillText(lm.name, p.x, p.y + 16);
+            } else if (lm.type === 'city') {
+                // Genève: skyline of buildings
+                const buildings = [12, 18, 10, 22, 15, 8, 20, 13];
+                for (let b = 0; b < buildings.length; b++) {
+                    const bx = p.x - 24 + b * 7;
+                    const bh = buildings[b];
+                    const bw = 5;
+                    ctx.fillStyle = `rgba(100, 115, 140, ${0.35 + b * 0.01})`;
+                    ctx.fillRect(bx, p.y - bh, bw, bh);
+                    // Windows
+                    ctx.fillStyle = 'rgba(230, 210, 90, 0.3)';
+                    for (let w = 2; w < bh - 2; w += 4) {
+                        ctx.fillRect(bx + 1, p.y - bh + w, 3, 2);
+                    }
+                }
+                ctx.font = 'bold 13px Courier New';
+                ctx.fillStyle = 'rgba(200, 190, 160, 0.6)';
+                ctx.textAlign = 'center';
+                ctx.fillText(lm.name, p.x, p.y + 18);
+                // Jet d'eau
+                ctx.beginPath();
+                ctx.moveTo(p.x + 32, p.y - 2);
+                ctx.lineTo(p.x + 32, p.y - 28);
+                ctx.strokeStyle = 'rgba(90, 160, 230, 0.4)';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                // Spray
+                ctx.beginPath();
+                ctx.arc(p.x + 32, p.y - 30, 5, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(90, 160, 230, 0.2)';
+                ctx.fill();
+            } else if (lm.type === 'cern') {
+                // CERN campus
+                ctx.fillStyle = 'rgba(0, 110, 170, 0.3)';
+                ctx.fillRect(p.x - 16, p.y - 8, 32, 14);
+                // Second building
+                ctx.fillStyle = 'rgba(0, 90, 150, 0.22)';
+                ctx.fillRect(p.x - 22, p.y - 4, 10, 8);
+                // Globe of Science
+                ctx.beginPath();
+                ctx.arc(p.x + 22, p.y - 3, 8, 0, Math.PI * 2);
+                ctx.strokeStyle = 'rgba(0, 160, 230, 0.45)';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.ellipse(p.x + 22, p.y - 3, 8, 4, 0, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(p.x + 22, p.y - 11);
+                ctx.lineTo(p.x + 22, p.y + 5);
+                ctx.stroke();
+                // Label
+                ctx.font = 'bold 12px Courier New';
+                ctx.fillStyle = 'rgba(0, 180, 250, 0.6)';
+                ctx.textAlign = 'center';
+                ctx.fillText('CERN', p.x, p.y + 20);
+            } else if (lm.type === 'mountain') {
+                const mp = ringPos(lm.angle, ringRx * 0.45);
+                ctx.font = '11px Courier New';
+                ctx.fillStyle = 'rgba(90, 130, 90, 0.45)';
+                ctx.textAlign = 'center';
+                ctx.fillText('Jura \u26F0', mp.x, mp.y);
+            }
+        }
+
+        // --- "100m underground" depth indicator ---
+        const depthPos = ringPos(Math.PI * 0.5, -ringRx * 0.06);
+        ctx.font = '10px Courier New';
+        ctx.fillStyle = 'rgba(120, 120, 140, 0.45)';
+        ctx.textAlign = 'center';
+        ctx.fillText('\u2193 100m underground', depthPos.x, depthPos.y + 14);
+    }
+
+    // Magnetic field lines visualization
+    function drawMagneticField() {
+        const segments = 36;
+        for (let i = 0; i < segments; i++) {
+            const a = (i / segments) * Math.PI * 2;
+            const pulseOffset = Math.sin(time * 4 + i * 0.5) * 0.3;
+            const inner = ringPos(a, -14 - pulseOffset * 4);
+            const outer = ringPos(a, 14 + pulseOffset * 4);
+
+            ctx.beginPath();
+            ctx.moveTo(inner.x, inner.y);
+            ctx.lineTo(outer.x, outer.y);
+            ctx.strokeStyle = `rgba(0, 80, 160, ${0.08 + pulseOffset * 0.05})`;
+            ctx.lineWidth = 1;
+            ctx.stroke();
+        }
+    }
+
+    function draw() {
+        // Background is drawn in screen-space (no zoom)
+        drawBackground();
+
+        // Apply zoom + pan
+        ctx.save();
+        ctx.translate(W / 2 + panX, H / 2 + panY);
+        ctx.scale(zoom, zoom);
+        ctx.translate(-W / 2, -H / 2);
+
+        drawLandmarks();
+        drawMagneticField();
+        drawRing();
+        drawBeams();
+        drawDetectors();
+        drawCollisionProducts();
+        drawDetectorHits();
+
+        ctx.restore();
+
+        // HUD elements in screen-space
+        drawEnergyMeter();
+        drawZoomHUD();
+    }
+
+    function drawZoomHUD() {
+        const speedLabel = targetTimeScale < 1 ? targetTimeScale.toFixed(2) + 'x' : targetTimeScale.toFixed(0) + 'x';
+        const zoomLabel = targetZoom.toFixed(1) + 'x';
+        document.getElementById('btn-speed-label').textContent = speedLabel;
+        document.getElementById('btn-zoom-label').textContent = zoomLabel;
+        // Slow-mo indicator on canvas
+        if (timeScale < 0.5) {
+            ctx.font = 'bold 14px Courier New';
+            ctx.fillStyle = `rgba(255, 180, 0, ${0.5 + Math.sin(time * 4) * 0.3})`;
+            ctx.textAlign = 'center';
+            ctx.fillText('\u25B6\u25B6 SLOW MOTION ' + targetTimeScale.toFixed(2) + 'x', W / 2, 70);
+        } else if (timeScale > 1.5) {
+            ctx.font = 'bold 14px Courier New';
+            ctx.fillStyle = `rgba(0, 200, 255, ${0.5 + Math.sin(time * 6) * 0.3})`;
+            ctx.textAlign = 'center';
+            ctx.fillText('\u25B6\u25B6 FAST FORWARD ' + targetTimeScale.toFixed(1) + 'x', W / 2, 70);
+        }
+    }
+
+    function loop() {
+        update();
+        draw();
+        requestAnimationFrame(loop);
+    }
+
+    loop();
+
+    // --- Intro ---
+    function dismissIntro() {
+        const el = document.getElementById('intro-overlay');
+        el.classList.add('fade-out');
+        introActive = false;
+        setTimeout(() => el.style.display = 'none', 800);
+        logEvent('LHC Simulation started');
+        logEvent('Proton bunches are being prepared...');
+        setTimeout(() => logEvent('Beam A: ' + BUNCHES_PER_BEAM + ' bunches circulating'), 1500);
+        setTimeout(() => logEvent('Beam B: ' + BUNCHES_PER_BEAM + ' bunches circulating'), 2500);
+        setTimeout(() => logEvent('Press [E] for LINAC4 \u2192 PSB \u2192 PS \u2192 SPS \u2192 LHC'), 4000);
+    }
+
+    // --- Info panel ---
+    function toggleInfo() {
+        infoOpen = !infoOpen;
+        document.getElementById('info-overlay').classList.toggle('visible', infoOpen);
+        document.getElementById('info-btn').classList.toggle('active', infoOpen);
+    }
+
+    // Build particle legend in info panel
+    function buildParticleLegend() {
+        const el = document.getElementById('particle-legend');
+        const descriptions = {
+            'Higgs Boson (H\u2070)': 'Gives other particles their mass. Discovered at the LHC in 2012. Nobel Prize 2013.',
+            'Top Quark (t)': 'Heaviest known elementary particle. As heavy as a gold atom.',
+            'W Boson (W\u00b1)': 'Carrier of the weak nuclear force. Responsible for radioactive decay.',
+            'Z Boson (Z\u2070)': 'Neutral carrier of the weak force. Discovered at CERN in 1983.',
+            'Tau Lepton (\u03c4)': 'Heaviest lepton. Decays extremely quickly into lighter particles.',
+            'Bottom Quark (b)': '3rd generation quark. Important for CP violation (matter/antimatter).',
+            'Charm Quark (c)': '2nd generation quark. Part of the "November Revolution" of 1974.',
+            'Kaon (K)': 'Meson containing a strange quark. Important for the discovery of CP violation.',
+            'Muon (\u03bc)': 'Heavy cousin of the electron. Penetrates matter by meters.',
+            'Pion (\u03c0)': 'Lightest meson. Mediates the nuclear force between protons and neutrons.',
+            'Photon (\u03b3)': 'Light particle. Massless carrier of the electromagnetic force.',
+            'Gluon (g)': 'Holds quarks together inside the proton. Carrier of the strong nuclear force.',
+            'Electron (e\u207b)': 'Lightest charged particle. The basis of all chemistry and electronics.',
+            'Neutrino (\u03bd)': 'Ghost particle. Passes through the entire Earth nearly unhindered.',
+        };
+        for (const p of particleTypes) {
+            const item = document.createElement('div');
+            item.className = 'particle-item';
+            item.innerHTML = `
+                <div class="particle-dot" style="background:${p.color};box-shadow:0 0 6px ${p.color}"></div>
+                <div class="particle-info">
+                    <div class="pname">${p.name}</div>
+                    <div class="pmass">${p.mass > 0 ? p.mass + ' GeV/c\u00b2' : 'massless'} \u2014 Rarity: ${p.rarity < 0.1 ? 'extremely rare' : p.rarity < 0.3 ? 'rare' : p.rarity < 0.5 ? 'medium' : 'common'}</div>
+                    <div class="pmass">${descriptions[p.name] || ''}</div>
+                </div>
+            `;
+            el.appendChild(item);
+        }
+    }
+    buildParticleLegend();
+
+    // --- Tooltip on canvas hover (detectors) ---
+    const detectorDescriptions = {
+        'ATLAS': 'A Toroidal LHC ApparatuS\nLargest detector at the LHC (46\u00d725 m)\nDiscovered the Higgs boson in 2012',
+        'CMS': 'Compact Muon Solenoid\n14,000 tons, strongest solenoid magnet\nSecond independent Higgs confirmation',
+        'ALICE': 'A Large Ion Collider Experiment\nStudies quark-gluon plasma\nMatter as it existed shortly after the Big Bang',
+        'LHCb': 'LHC beauty\nStudies matter vs. antimatter\nPrecision measurements of B mesons',
+    };
+
+    // Convert screen coords to world coords (accounting for zoom/pan)
+    function screenToWorld(sx, sy) {
+        return {
+            x: (sx - W / 2 - panX) / zoom + W / 2,
+            y: (sy - H / 2 - panY) / zoom + H / 2
+        };
+    }
+
+    canvas.addEventListener('mousemove', (e) => {
+        const tooltip = document.getElementById('tooltip');
+        let found = false;
+        const world = screenToWorld(e.clientX, e.clientY);
+        for (const det of detectors) {
+            const dp = ringPos(det.angle);
+            const dist = Math.hypot(world.x - dp.x, world.y - dp.y);
+            if (dist < 35) {
+                const desc = detectorDescriptions[det.name];
+                tooltip.innerHTML = `<h4 style="color:${det.color}">${det.name}</h4>` +
+                    desc.split('\n').map(l => `<div>${l}</div>`).join('');
+                tooltip.style.left = (e.clientX + 16) + 'px';
+                tooltip.style.top = (e.clientY - 10) + 'px';
+                tooltip.style.display = 'block';
+                tooltip.style.borderColor = det.color + '55';
+                found = true;
+                break;
+            }
+        }
+        if (!found) tooltip.style.display = 'none';
+    });
+
+    // --- Zoom with mouse wheel (zoom toward cursor) ---
+    canvas.addEventListener('wheel', (e) => {
+        if (introActive || infoOpen) return;
+        e.preventDefault();
+        const zoomDelta = e.deltaY > 0 ? 0.95 : 1.05;
+        const newZoom = Math.max(0.5, Math.min(8, targetZoom * zoomDelta));
+
+        // Zoom toward mouse position
+        const mx = e.clientX - W / 2 - panX;
+        const my = e.clientY - H / 2 - panY;
+        const scale = 1 - newZoom / targetZoom;
+        targetPanX += mx * scale;
+        targetPanY += my * scale;
+        targetZoom = newZoom;
+    }, { passive: false });
+
+    // --- Drag to pan ---
+    canvas.addEventListener('mousedown', (e) => {
+        if (introActive || infoOpen) return;
+        isDragging = true;
+        dragStartX = e.clientX;
+        dragStartY = e.clientY;
+        dragPanStartX = targetPanX;
+        dragPanStartY = targetPanY;
+        canvas.style.cursor = 'grabbing';
+    });
+    window.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        targetPanX = dragPanStartX + (e.clientX - dragStartX);
+        targetPanY = dragPanStartY + (e.clientY - dragStartY);
+    });
+    window.addEventListener('mouseup', () => {
+        isDragging = false;
+        canvas.style.cursor = 'default';
+    });
+
+    // --- Touch: pinch-to-zoom + drag ---
+    let lastTouchDist = 0;
+    let lastTouchCenter = null;
+    canvas.addEventListener('touchstart', (e) => {
+        if (introActive || infoOpen) return;
+        if (e.touches.length === 1) {
+            isDragging = true;
+            dragStartX = e.touches[0].clientX;
+            dragStartY = e.touches[0].clientY;
+            dragPanStartX = targetPanX;
+            dragPanStartY = targetPanY;
+        } else if (e.touches.length === 2) {
+            isDragging = false;
+            lastTouchDist = Math.hypot(e.touches[1].clientX - e.touches[0].clientX, e.touches[1].clientY - e.touches[0].clientY);
+            lastTouchCenter = { x: (e.touches[0].clientX + e.touches[1].clientX) / 2, y: (e.touches[0].clientY + e.touches[1].clientY) / 2 };
+        }
+    }, { passive: true });
+    canvas.addEventListener('touchmove', (e) => {
+        if (introActive || infoOpen) return;
+        e.preventDefault();
+        if (e.touches.length === 1 && isDragging) {
+            targetPanX = dragPanStartX + (e.touches[0].clientX - dragStartX);
+            targetPanY = dragPanStartY + (e.touches[0].clientY - dragStartY);
+        } else if (e.touches.length === 2 && lastTouchDist > 0) {
+            const dist = Math.hypot(e.touches[1].clientX - e.touches[0].clientX, e.touches[1].clientY - e.touches[0].clientY);
+            const scale = dist / lastTouchDist;
+            targetZoom = Math.max(0.5, Math.min(8, targetZoom * scale));
+            lastTouchDist = dist;
+        }
+    }, { passive: false });
+    canvas.addEventListener('touchend', () => { isDragging = false; lastTouchDist = 0; });
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+        if (introActive && (e.code === 'Space' || e.code === 'Enter')) { e.preventDefault(); dismissIntro(); return; }
+        if (e.code === 'Escape' && infoOpen) { toggleInfo(); return; }
+        if (e.code === 'KeyI') { toggleInfo(); return; }
+        if (infoOpen) return;
+        if (e.code === 'Space') { e.preventDefault(); triggerCollision(); }
+        if (e.code === 'KeyE') boostEnergy();
+        if (e.code === 'KeyP') togglePause();
+        // Speed control: < slow down, > speed up
+        if (e.code === 'Comma') changeSpeed(-1);
+        if (e.code === 'Period') changeSpeed(1);
+        // R = reset zoom/pan
+        if (e.code === 'KeyR') {
+            targetZoom = 1;
+            targetPanX = 0;
+            targetPanY = 0;
+        }
+        // +/- for zoom via keyboard
+        if (e.code === 'Equal' || e.code === 'NumpadAdd') targetZoom = Math.min(8, targetZoom * 1.3);
+        if (e.code === 'Minus' || e.code === 'NumpadSubtract') targetZoom = Math.max(0.5, targetZoom / 1.3);
+    });
+    </script>
+</body>
+</html>
